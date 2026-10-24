@@ -1,3 +1,4 @@
+//v1
 
 let bg;
 let imgs = [];
@@ -8,10 +9,6 @@ let song;
 let fft;
 
 let isStopped = true;
-
-// 원본 작품 크기
-const DESIGN_W = 1242;
-const DESIGN_H = 886;
 
 function preload() {
   bg = loadImage("bg_unicorn.png");
@@ -24,11 +21,9 @@ function preload() {
 }
 
 function setup() {
-
   createCanvas(windowWidth, windowHeight);
   imageMode(CORNER);
-  
-
+  noStroke();
 
   song.setVolume(1);
 
@@ -39,28 +34,16 @@ function setup() {
 }
 
 function draw() {
+  background(255);
 
-  // 원본 작품 비율을 유지하면서 화면 안에 맞춤
-  const scaleValue = min(
-    width / DESIGN_W,
-    height / DESIGN_H
-  );
-
-  const drawW = DESIGN_W * scaleValue;
-  const drawH = DESIGN_H * scaleValue;
-
-  const offsetX = (width - drawW) / 2;
-  const offsetY = (height - drawH) / 2;
-
-  push();
-
-  translate(offsetX, offsetY);
-  scale(scaleValue);
-
-  
   drawBackground();
   drawMagicDust();
   drawAnimals();
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+  generateArtwork();
 }
 
 function generateArtwork() {
@@ -72,22 +55,39 @@ function generateArtwork() {
 }
 
 function drawBackground() {
+  if (!bg || bg.width === 0 || bg.height === 0) {
+    return;
+  }
+
   imageMode(CORNER);
-  image(bg, 0, 0, width, height);
+
+  const scaleValue = max(
+    width / bg.width,
+    height / bg.height
+  );
+
+  const drawW = bg.width * scaleValue;
+  const drawH = bg.height * scaleValue;
+
+  const offsetX = (width - drawW) / 2;
+  const offsetY = (height - drawH) / 2;
+
+  image(bg, offsetX, offsetY, drawW, drawH);
 }
 
-// 반짝이는 점 600개
 function generateMagicDust() {
+  const colors = [
+    [255, 190, 215],
+    [255, 235, 240],
+    [40, 255, 120]
+  ];
+
   for (let i = 0; i < 600; i++) {
     sticks.push({
       x: random(width),
       y: random(height),
       size: random(2, 8),
-      color: random([
-        [255, 190, 215],
-        [255, 235, 240],
-        [40, 255, 120]
-      ]),
+      color: random(colors),
       phase: random(TWO_PI),
       speed: random(0.02, 0.05)
     });
@@ -101,7 +101,8 @@ function drawMagicDust() {
     let pulse = 1;
 
     if (!isStopped) {
-      pulse = 1 + sin(frameCount * s.speed + s.phase) * 0.25;
+      pulse =
+        1 + sin(frameCount * s.speed + s.phase) * 0.25;
     }
 
     fill(
@@ -115,43 +116,31 @@ function drawMagicDust() {
   }
 }
 
-// 이미지 동그라미 100개
 function generateLayout() {
   animals = [];
 
   for (let i = 0; i < 100; i++) {
-    let img = random(imgs);
+    const img = random(imgs);
 
-    // 이미지 기본 크기
-    let scaleValue = random(0.03, 0.06);
-
-    let w = img.width * scaleValue;
-    let h = img.height * scaleValue;
+    const scaleValue = random(0.03, 0.06);
+    const w = img.width * scaleValue;
+    const h = img.height * scaleValue;
 
     animals.push({
       img: img,
-
-      // 위치 고정
       x: random(width),
       y: random(height),
-
       w: w,
       h: h,
-
-      // 각자 다른 맥동 리듬
       phase: random(TWO_PI),
       pulseSpeed: random(0.025, 0.055),
-
-      // 작아졌다가 크게 확대
       minScale: 0.3,
       maxScale: random(1.8, 2.2),
-
       angle: random(-PI / 3, PI / 3)
     });
   }
 }
 
-// 이미지가 제자리에서 커졌다 작아짐
 function drawAnimals() {
   imageMode(CENTER);
   noTint();
@@ -160,7 +149,7 @@ function drawAnimals() {
     let scaleValue = 1;
 
     if (!isStopped) {
-      let wave =
+      const wave =
         (sin(frameCount * a.pulseSpeed + a.phase) + 1) / 2;
 
       scaleValue = lerp(
@@ -171,7 +160,6 @@ function drawAnimals() {
     }
 
     push();
-
     translate(a.x, a.y);
     rotate(a.angle);
 
@@ -187,10 +175,12 @@ function drawAnimals() {
   }
 
   noTint();
+  imageMode(CORNER);
 }
 
-// 클릭: 시작 / 정지 / 재시작
 function triggerSound() {
+  if (!song) return;
+
   if (!isStopped) {
     isStopped = true;
 
@@ -203,7 +193,6 @@ function triggerSound() {
     isStopped = false;
 
     userStartAudio();
-
     song.stop();
     song.play();
   }
@@ -214,14 +203,12 @@ function mousePressed() {
   return false;
 }
 
-// Cargo iframe 메시지 연동
-window.addEventListener("message", (event) => {
+window.addEventListener("message", function(event) {
   if (event.data === "triggerSound") {
     triggerSound();
   }
 });
 
-// 키보드 단축키
 function keyPressed() {
   if (key === "r" || key === "R") {
     saveGif("poison-garden", 8);
