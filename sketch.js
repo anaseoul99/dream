@@ -1,13 +1,11 @@
-//vv1
+
 
 let bg;
 let imgs = [];
 let animals = [];
 let sticks = [];
 
-let song;
-let fft;
-
+let speaker;
 let isStopped = true;
 let lastTrigger = 0;
 
@@ -17,19 +15,12 @@ function preload() {
   imgs.push(loadImage("1y.png"));
   imgs.push(loadImage("1y2.png"));
   imgs.push(loadImage("1y3.png"));
-
-  song = loadSound("dream.mp3");
 }
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
   imageMode(CORNER);
   noStroke();
-
-  song.setVolume(1);
-
-  fft = new p5.FFT();
-  fft.setInput(song);
 
   generateArtwork();
 }
@@ -152,23 +143,34 @@ function drawAnimals() {
   imageMode(CORNER);
 }
 
+function speakerAudio() {
+  if (!speaker) {
+    speaker = new Audio("dream.mp3");
+    speaker.setAttribute("playsinline", "");
+    speaker.preload = "auto";
+  }
+  return speaker;
+}
+
 function triggerSound() {
-  if (!song) return;
   if (millis() - lastTrigger < 400) return;
   lastTrigger = millis();
 
-  if (!isStopped) {
-    isStopped = true;
+  const audio = speakerAudio();
 
-    if (song.isPlaying()) {
-      song.stop();
-    }
+  if (!audio.paused) {
+    audio.pause();
+    audio.currentTime = 0;
+    isStopped = true;
   } else {
     generateArtwork();
     isStopped = false;
-    userStartAudio();
-    getAudioContext().resume();
-    song.play();
+    const played = audio.play();
+    if (played) {
+      played.catch(() => {
+        isStopped = true;
+      });
+    }
   }
 }
 
