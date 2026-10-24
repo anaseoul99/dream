@@ -1,4 +1,4 @@
-//v1
+//vv1
 
 let bg;
 let imgs = [];
@@ -9,6 +9,7 @@ let song;
 let fft;
 
 let isStopped = true;
+let lastTrigger = 0;
 
 function preload() {
   bg = loadImage("bg_unicorn.png");
@@ -61,14 +62,9 @@ function drawBackground() {
 
   imageMode(CORNER);
 
-  const scaleValue = max(
-    width / bg.width,
-    height / bg.height
-  );
-
+  const scaleValue = max(width / bg.width, height / bg.height);
   const drawW = bg.width * scaleValue;
   const drawH = bg.height * scaleValue;
-
   const offsetX = (width - drawW) / 2;
   const offsetY = (height - drawH) / 2;
 
@@ -101,17 +97,10 @@ function drawMagicDust() {
     let pulse = 1;
 
     if (!isStopped) {
-      pulse =
-        1 + sin(frameCount * s.speed + s.phase) * 0.25;
+      pulse = 1 + sin(frameCount * s.speed + s.phase) * 0.25;
     }
 
-    fill(
-      s.color[0],
-      s.color[1],
-      s.color[2],
-      140
-    );
-
+    fill(s.color[0], s.color[1], s.color[2], 140);
     circle(s.x, s.y, s.size * pulse);
   }
 }
@@ -121,7 +110,6 @@ function generateLayout() {
 
   for (let i = 0; i < 100; i++) {
     const img = random(imgs);
-
     const scaleValue = random(0.03, 0.06);
     const w = img.width * scaleValue;
     const h = img.height * scaleValue;
@@ -149,28 +137,14 @@ function drawAnimals() {
     let scaleValue = 1;
 
     if (!isStopped) {
-      const wave =
-        (sin(frameCount * a.pulseSpeed + a.phase) + 1) / 2;
-
-      scaleValue = lerp(
-        a.minScale,
-        a.maxScale,
-        wave
-      );
+      const wave = (sin(frameCount * a.pulseSpeed + a.phase) + 1) / 2;
+      scaleValue = lerp(a.minScale, a.maxScale, wave);
     }
 
     push();
     translate(a.x, a.y);
     rotate(a.angle);
-
-    image(
-      a.img,
-      0,
-      0,
-      a.w * scaleValue,
-      a.h * scaleValue
-    );
-
+    image(a.img, 0, 0, a.w * scaleValue, a.h * scaleValue);
     pop();
   }
 
@@ -180,6 +154,8 @@ function drawAnimals() {
 
 function triggerSound() {
   if (!song) return;
+  if (millis() - lastTrigger < 400) return;
+  lastTrigger = millis();
 
   if (!isStopped) {
     isStopped = true;
@@ -189,11 +165,9 @@ function triggerSound() {
     }
   } else {
     generateArtwork();
-
     isStopped = false;
-
     userStartAudio();
-    song.stop();
+    getAudioContext().resume();
     song.play();
   }
 }
@@ -202,6 +176,16 @@ function mousePressed() {
   triggerSound();
   return false;
 }
+
+function touchStarted() {
+  triggerSound();
+  return false;
+}
+
+document.addEventListener("touchstart", (event) => {
+  triggerSound();
+  event.preventDefault();
+}, { passive: false });
 
 window.addEventListener("message", function(event) {
   if (event.data === "triggerSound") {
